@@ -13,6 +13,7 @@ import { register as createDocument } from './createDocument.js';
 import { register as createFromTemplate } from './createFromTemplate.js';
 import { register as readDriveFile } from './readDriveFile.js';
 import { register as uploadFile } from './uploadFile.js';
+import { register as shareFile } from './shareFile.js';
 
 export function registerDriveTools(server: FastMCP) {
   listGoogleDocs(server);
@@ -29,4 +30,5 @@ export function registerDriveTools(server: FastMCP) {
   createFromTemplate(server);
   readDriveFile(server);
   uploadFile(server);
+  shareFile(server);
 }
