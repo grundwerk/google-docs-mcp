@@ -14,6 +14,23 @@ import { register as createFromTemplate } from './createFromTemplate.js';
 import { register as readDriveFile } from './readDriveFile.js';
 import { register as uploadFile } from './uploadFile.js';
 import { register as shareFile } from './shareFile.js';
+import { register as listFilePermissions } from './listFilePermissions.js';
+import { register as removePermission } from './removePermission.js';
+import { register as updatePermission } from './updatePermission.js';
+import { register as trashFile } from './trashFile.js';
+import { register as restoreFile } from './restoreFile.js';
+import { register as emptyTrash } from './emptyTrash.js';
+import { register as exportFile } from './exportFile.js';
+import { register as convertFile } from './convertFile.js';
+import { register as starFile } from './starFile.js';
+import { register as unstarFile } from './unstarFile.js';
+
+// Phase 8 — LOW Drive
+import { register as listFileRevisions } from './listFileRevisions.js';
+import { register as keepRevisionForever } from './keepRevisionForever.js';
+import { register as deleteRevision } from './deleteRevision.js';
+import { register as watchFile } from './watchFile.js';
+import { register as getDriveAbout } from './getDriveAbout.js';
 
 export function registerDriveTools(server: FastMCP) {
   listGoogleDocs(server);
@@ -31,4 +48,21 @@ export function registerDriveTools(server: FastMCP) {
   readDriveFile(server);
   uploadFile(server);
   shareFile(server);
+  listFilePermissions(server);
+  removePermission(server);
+  updatePermission(server);
+  trashFile(server);
+  restoreFile(server);
+  emptyTrash(server);
+  exportFile(server);
+  convertFile(server);
+  starFile(server);
+  unstarFile(server);
+
+  // Phase 8 — LOW Drive
+  listFileRevisions(server);
+  keepRevisionForever(server);
+  deleteRevision(server);
+  watchFile(server);
+  getDriveAbout(server);
 }

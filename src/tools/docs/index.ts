@@ -20,6 +20,15 @@ import { register as insertImage } from './insertImage.js';
 import { registerCommentTools } from './comments/index.js';
 import { registerFormattingTools } from './formatting/index.js';
 
+// Phase 5 — MED Docs
+import { register as findReplaceDocs } from './findReplaceDocs.js';
+import { register as insertHeaderFooter } from './insertHeaderFooter.js';
+import { register as insertTOC } from './insertTOC.js';
+import { register as createBookmark } from './createBookmark.js';
+import { register as listBookmarks } from './listBookmarks.js';
+import { register as deleteBookmark } from './deleteBookmark.js';
+import { register as insertImageFromUrl } from './insertImageFromUrl.js';
+
 export function registerDocsTools(server: FastMCP) {
   // Core read/write
   readGoogleDoc(server);
@@ -40,4 +49,13 @@ export function registerDocsTools(server: FastMCP) {
   // Sub-domains
   registerFormattingTools(server);
   registerCommentTools(server);
+
+  // Phase 5 — MED Docs
+  findReplaceDocs(server);
+  insertHeaderFooter(server);
+  insertTOC(server);
+  createBookmark(server);
+  listBookmarks(server);
+  deleteBookmark(server);
+  insertImageFromUrl(server);
 }

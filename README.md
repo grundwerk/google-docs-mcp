@@ -1,8 +1,10 @@
-# Google Docs, Sheets & Drive MCP Server
+# Google Workspace MCP Server
 
 ![Demo Animation](assets/google.docs.mcp.1.gif)
 
-Connect Claude Desktop, Cursor, or any MCP client to your Google Docs, Google Sheets, and Google Drive.
+Connect Claude Desktop, Cursor, or any MCP client to your Google Docs, Sheets, Drive, Gmail, Calendar, Slides, Forms, Tasks, Apps Script, and Contacts (People).
+
+**Tool inventory** (this fork): 115+ tools across 11 API domains. See [TOOLS.md](TOOLS.md) for the full inventory.
 
 ---
 

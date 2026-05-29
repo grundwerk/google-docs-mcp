@@ -53,6 +53,12 @@ const SCOPES = [
   'https://www.googleapis.com/auth/gmail.readonly',
   'https://www.googleapis.com/auth/gmail.modify',
   'https://www.googleapis.com/auth/gmail.send',
+  // Phase 10 — new API domains (require re-authorize via `node dist/index.js auth`)
+  'https://www.googleapis.com/auth/presentations',
+  'https://www.googleapis.com/auth/forms.body',
+  'https://www.googleapis.com/auth/forms.responses.readonly',
+  'https://www.googleapis.com/auth/tasks',
+  'https://www.googleapis.com/auth/contacts',
 ];
 
 // ---------------------------------------------------------------------------

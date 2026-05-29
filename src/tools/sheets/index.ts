@@ -11,6 +11,34 @@ import { register as listGoogleSheets } from './listGoogleSheets.js';
 import { register as deleteSheet } from './deleteSheet.js';
 import { register as renameSheet } from './renameSheet.js';
 import { register as duplicateSheet } from './duplicateSheet.js';
+import { register as deleteRows } from './deleteRows.js';
+import { register as deleteRowByValue } from './deleteRowByValue.js';
+
+// Power-Editing (Phase 4)
+import { register as sortRange } from './sortRange.js';
+import { register as findReplace } from './findReplace.js';
+import { register as insertRowsAt } from './insertRowsAt.js';
+import { register as setRowVisibility } from './setRowVisibility.js';
+import { register as setColumnVisibility } from './setColumnVisibility.js';
+import { register as mergeCells } from './mergeCells.js';
+import { register as unmergeCells } from './unmergeCells.js';
+import { register as insertHyperlink } from './insertHyperlink.js';
+
+// Named Ranges
+import { register as createNamedRange } from './createNamedRange.js';
+import { register as listNamedRanges } from './listNamedRanges.js';
+import { register as updateNamedRange } from './updateNamedRange.js';
+import { register as deleteNamedRange } from './deleteNamedRange.js';
+
+// Protected Ranges
+import { register as createProtectedRange } from './createProtectedRange.js';
+import { register as listProtectedRanges } from './listProtectedRanges.js';
+import { register as updateProtectedRange } from './updateProtectedRange.js';
+import { register as deleteProtectedRange } from './deleteProtectedRange.js';
+
+// Power-Features
+import { register as createChart } from './createChart.js';
+import { register as createPivotTable } from './createPivotTable.js';
 
 // Formatting & validation
 import { register as formatCells } from './formatCells.js';
@@ -43,6 +71,8 @@ export function registerSheetsTools(server: FastMCP) {
   deleteSheet(server);
   renameSheet(server);
   duplicateSheet(server);
+  deleteRows(server);
+  deleteRowByValue(server);
 
   // Formatting & validation
   formatCells(server);
@@ -61,4 +91,30 @@ export function registerSheetsTools(server: FastMCP) {
   deleteTable(server);
   updateTableRange(server);
   appendTableRows(server);
+
+  // Power-Editing
+  sortRange(server);
+  findReplace(server);
+  insertRowsAt(server);
+  setRowVisibility(server);
+  setColumnVisibility(server);
+  mergeCells(server);
+  unmergeCells(server);
+  insertHyperlink(server);
+
+  // Named Ranges
+  createNamedRange(server);
+  listNamedRanges(server);
+  updateNamedRange(server);
+  deleteNamedRange(server);
+
+  // Protected Ranges
+  createProtectedRange(server);
+  listProtectedRanges(server);
+  updateProtectedRange(server);
+  deleteProtectedRange(server);
+
+  // Power-Features
+  createChart(server);
+  createPivotTable(server);
 }
