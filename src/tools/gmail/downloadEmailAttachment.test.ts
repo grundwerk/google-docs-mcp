@@ -121,7 +121,7 @@ describe('downloadEmailAttachment', () => {
         { messageId: 'm', attachmentId: 'unknown-id', savePath: TEST_DIR },
         mockGmail
       )
-    ).rejects.toThrow(/attachmentId not found/);
+    ).rejects.toThrow(/Cannot pick attachment/);
   });
 
   it('throws UserError when message has no attachments', async () => {
@@ -278,18 +278,39 @@ describe('pickAttachment helper', () => {
   ];
 
   it('matches exact attachmentId', () => {
-    expect(pickAttachment(sample, 'a2', 'm').attachmentId).toBe('a2');
+    expect(pickAttachment(sample, { attachmentId: 'a2' }, 'm').attachmentId).toBe('a2');
   });
 
   it('falls back to single attachment when ID mismatch but only 1 attachment', () => {
-    expect(pickAttachment([sample[0]!], 'unknown', 'm').attachmentId).toBe('a1');
+    expect(pickAttachment([sample[0]!], { attachmentId: 'unknown' }, 'm').attachmentId).toBe('a1');
   });
 
-  it('throws UserError with attachment list when ID mismatch + multiple', () => {
-    expect(() => pickAttachment(sample, 'unknown', 'm')).toThrow(/not found/);
+  it('throws UserError with guidance when ID mismatch + multiple + no fallback', () => {
+    expect(() => pickAttachment(sample, { attachmentId: 'unknown' }, 'm')).toThrow(/Cannot pick attachment/);
+  });
+
+  it('matches by expectedFilename when attachmentId stale + multi-attachment', () => {
+    expect(pickAttachment(sample, { attachmentId: 'stale-id', expectedFilename: 'two.pdf' }, 'm').attachmentId).toBe('a2');
+  });
+
+  it('matches by attachmentIndex when no id/filename match', () => {
+    expect(pickAttachment(sample, { attachmentIndex: 1 }, 'm').attachmentId).toBe('a2');
+    expect(pickAttachment(sample, { attachmentIndex: 0 }, 'm').attachmentId).toBe('a1');
+  });
+
+  it('throws when attachmentIndex out of range', () => {
+    expect(() => pickAttachment(sample, { attachmentIndex: 99 }, 'm')).toThrow(/out of range/);
+  });
+
+  it('precedence: exact attachmentId beats expectedFilename', () => {
+    // sample[0] has fname='one.pdf', sample[1] has fname='two.pdf'
+    // attachmentId 'a1' matches sample[0] which is 'one.pdf'
+    // expectedFilename 'two.pdf' would match sample[1]
+    // attachmentId wins → sample[0]
+    expect(pickAttachment(sample, { attachmentId: 'a1', expectedFilename: 'two.pdf' }, 'm').attachmentId).toBe('a1');
   });
 
   it('throws UserError when no attachments at all', () => {
-    expect(() => pickAttachment([], 'any', 'm')).toThrow(/has no attachments/);
+    expect(() => pickAttachment([], { attachmentId: 'any' }, 'm')).toThrow(/has no attachments/);
   });
 });

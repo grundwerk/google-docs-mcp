@@ -10,7 +10,24 @@ export const downloadEmailAttachmentParams = z.object({
   messageId: z.string().describe('The Gmail message ID containing the attachment (from searchEmails results).'),
   attachmentId: z
     .string()
-    .describe('The Gmail attachment ID (from message payload parts[].body.attachmentId).'),
+    .optional()
+    .describe(
+      'The Gmail attachment ID. NOTE: Gmail rotates attachmentIds per messages.get call — IDs from prior calls may not match. If mismatch, the tool falls back to expectedFilename or attachmentIndex.'
+    ),
+  attachmentIndex: z
+    .number()
+    .int()
+    .nonnegative()
+    .optional()
+    .describe(
+      'Zero-based position of the attachment in the message (0 = first attachment). Use when you do not know the attachmentId or when it may be stale. If both attachmentId and attachmentIndex are given, attachmentId wins on exact match.'
+    ),
+  expectedFilename: z
+    .string()
+    .optional()
+    .describe(
+      'Filename to match against the attachment list (e.g. "schriftsatz.pdf"). Useful for multi-attachment emails where attachmentId is unstable.'
+    ),
   savePath: z
     .string()
     .optional()
@@ -73,30 +90,50 @@ export function listAttachments(
  * passed an ID from a previous `messages.get` cycle.
  *
  * Resolution order:
- *  1. Exact attachmentId match in current payload.
- *  2. If user-input is a known stub (starts with `attachment-` or empty), fall back.
- *  3. If exactly one attachment exists, use it (most common case).
- *  4. Else throw with the fresh list so caller can retry with current IDs.
+ *  1. Exact attachmentId match in current payload (if attachmentId given).
+ *  2. expectedFilename exact match (if given).
+ *  3. attachmentIndex (if given, 0-based position in flat parts-walk).
+ *  4. Single-attachment fallback (most common case).
+ *  5. Throw with fresh list + how-to-pick guidance.
  */
 export function pickAttachment(
   attachments: AttachmentMeta[],
-  userAttachmentId: string,
+  opts: { attachmentId?: string; expectedFilename?: string; attachmentIndex?: number },
   messageId: string
 ): AttachmentMeta {
   if (attachments.length === 0) {
     throw new UserError(`Message ${messageId} has no attachments.`);
   }
-  const exact = attachments.find((a) => a.attachmentId === userAttachmentId);
-  if (exact) return exact;
+  // 1. Exact attachmentId match
+  if (opts.attachmentId) {
+    const exact = attachments.find((a) => a.attachmentId === opts.attachmentId);
+    if (exact) return exact;
+  }
+  // 2. expectedFilename match
+  if (opts.expectedFilename) {
+    const byName = attachments.find((a) => a.filename === opts.expectedFilename);
+    if (byName) return byName;
+  }
+  // 3. attachmentIndex
+  if (opts.attachmentIndex !== undefined) {
+    const byIdx = attachments[opts.attachmentIndex];
+    if (byIdx) return byIdx;
+    throw new UserError(
+      `attachmentIndex ${opts.attachmentIndex} out of range (message has ${attachments.length} attachment(s)).`
+    );
+  }
+  // 4. Single-attachment fallback
   if (attachments.length === 1) {
     return attachments[0]!;
   }
+  // 5. No way to pick — throw with guidance
   const summary = attachments
     .map((a, i) => `[${i}] ${a.filename || '(no filename)'} ${a.mimeType} id=${a.attachmentId.slice(0, 24)}...`)
     .join('\n  ');
   throw new UserError(
-    `attachmentId not found in message ${messageId} (Gmail rotates attachmentIds per messages.get call). ` +
-      `Re-fetch with a fresh messages.get and use one of:\n  ${summary}`
+    `Cannot pick attachment in message ${messageId} (${attachments.length} candidates, no match). ` +
+      `Gmail rotates attachmentIds per messages.get call. Available attachments:\n  ${summary}\n` +
+      `Retry with either: (a) fresh attachmentId from current messages.get, (b) expectedFilename, or (c) attachmentIndex (0-based).`
   );
 }
 
@@ -110,7 +147,15 @@ export async function executeDownloadEmailAttachment(
     format: 'full',
   });
   const attachments = listAttachments(msgResp.data.payload);
-  const picked = pickAttachment(attachments, args.attachmentId, args.messageId);
+  const picked = pickAttachment(
+    attachments,
+    {
+      attachmentId: args.attachmentId,
+      expectedFilename: args.expectedFilename,
+      attachmentIndex: args.attachmentIndex,
+    },
+    args.messageId
+  );
 
   const attachResp = await gmail.users.messages.attachments.get({
     userId: 'me',
@@ -143,11 +188,11 @@ export function register(server: FastMCP) {
   server.addTool({
     name: 'downloadEmailAttachment',
     description:
-      'Downloads a Gmail email attachment to a local file. Use this after readEmail/searchEmails when you need to save an attachment (e.g. PDF, image). Returns absolute filePath, original fileName, mimeType, and sizeBytes. Default savePath is /tmp/.',
+      'Downloads a Gmail email attachment to a local file. Use after readEmail/searchEmails when you need to save an attachment (PDF, image, etc). To pick which attachment: provide attachmentId (most precise but Gmail rotates IDs), expectedFilename (e.g. "schriftsatz.pdf"), or attachmentIndex (0-based). If none given and message has 1 attachment, picks that. Returns absolute filePath, fileName, mimeType, sizeBytes.',
     parameters: downloadEmailAttachmentParams,
     execute: async (args, { log }) => {
       log.info(
-        `Downloading attachment ${args.attachmentId} from message ${args.messageId} to ${args.savePath}`
+        `Downloading attachment from message ${args.messageId} to ${args.savePath} (id=${args.attachmentId?.slice(0, 24) || '?'} name=${args.expectedFilename || '?'} idx=${args.attachmentIndex ?? '?'})`
       );
       try {
         const gmail = await getGmailClient();

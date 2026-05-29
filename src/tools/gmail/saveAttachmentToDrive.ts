@@ -11,7 +11,22 @@ const ABMAHNUNGEN_FOLDER_ID = '1sW-Dfy7lFyplRnGbwZ5ZM81Sk6dkHwB9';
 
 export const saveAttachmentToDriveParams = z.object({
   messageId: z.string().describe('The Gmail message ID containing the attachment.'),
-  attachmentId: z.string().describe('The Gmail attachment ID.'),
+  attachmentId: z
+    .string()
+    .optional()
+    .describe(
+      'The Gmail attachment ID. NOTE: Gmail rotates attachmentIds per messages.get call. If mismatch, the tool falls back to expectedFilename or attachmentIndex.'
+    ),
+  attachmentIndex: z
+    .number()
+    .int()
+    .nonnegative()
+    .optional()
+    .describe('Zero-based position of the attachment in the message (0 = first). Use for multi-attachment emails.'),
+  expectedFilename: z
+    .string()
+    .optional()
+    .describe('Filename to match against the attachment list. Useful for multi-attachment emails.'),
   driveFolderId: z
     .string()
     .optional()
@@ -45,6 +60,8 @@ export async function executeSaveAttachmentToDrive(
     {
       messageId: args.messageId,
       attachmentId: args.attachmentId,
+      attachmentIndex: args.attachmentIndex,
+      expectedFilename: args.expectedFilename,
       savePath: '/tmp/mcp-drive-upload/',
     },
     gmail
