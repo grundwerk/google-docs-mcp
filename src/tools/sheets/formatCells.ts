@@ -33,6 +33,20 @@ export function register(server: FastMCP) {
           .enum(['LEFT', 'CENTER', 'RIGHT'])
           .optional()
           .describe('Horizontal text alignment.'),
+        verticalAlignment: z
+          .enum(['TOP', 'MIDDLE', 'BOTTOM'])
+          .optional()
+          .describe('Vertical text alignment within the cell.'),
+        fontFamily: z
+          .string()
+          .optional()
+          .describe('Font family name (e.g., "Roboto", "Arial", "Times New Roman").'),
+        wrapStrategy: z
+          .enum(['WRAP', 'CLIP', 'OVERFLOW_CELL'])
+          .optional()
+          .describe(
+            'How text wraps in the cell. WRAP wraps to new lines, CLIP cuts off overflow, OVERFLOW_CELL spills into adjacent empty cells.'
+          ),
         numberFormat: z
           .object({
             type: z
@@ -69,6 +83,9 @@ export function register(server: FastMCP) {
           data.foregroundColor !== undefined ||
           data.backgroundColor !== undefined ||
           data.horizontalAlignment !== undefined ||
+          data.verticalAlignment !== undefined ||
+          data.fontFamily !== undefined ||
+          data.wrapStrategy !== undefined ||
           data.numberFormat !== undefined,
         { message: 'At least one formatting option must be provided.' }
       ),
@@ -90,13 +107,15 @@ export function register(server: FastMCP) {
           args.bold !== undefined ||
           args.italic !== undefined ||
           args.fontSize !== undefined ||
-          args.foregroundColor !== undefined;
+          args.foregroundColor !== undefined ||
+          args.fontFamily !== undefined;
 
         if (hasTextFormat) {
           format.textFormat = {};
           if (args.bold !== undefined) format.textFormat.bold = args.bold;
           if (args.italic !== undefined) format.textFormat.italic = args.italic;
           if (args.fontSize !== undefined) format.textFormat.fontSize = args.fontSize;
+          if (args.fontFamily !== undefined) format.textFormat.fontFamily = args.fontFamily;
           if (args.foregroundColor) {
             const rgb = SheetsHelpers.hexToRgb(args.foregroundColor);
             if (!rgb) throw new UserError(`Invalid foreground color: "${args.foregroundColor}".`);
@@ -106,6 +125,14 @@ export function register(server: FastMCP) {
 
         if (args.horizontalAlignment) {
           format.horizontalAlignment = args.horizontalAlignment;
+        }
+
+        if (args.verticalAlignment) {
+          format.verticalAlignment = args.verticalAlignment;
+        }
+
+        if (args.wrapStrategy) {
+          format.wrapStrategy = args.wrapStrategy;
         }
 
         if (args.numberFormat) {
