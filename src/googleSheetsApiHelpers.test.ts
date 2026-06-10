@@ -5,6 +5,7 @@ import {
   listConditionalFormatRules,
   deleteConditionalFormatRule,
   setRowHeights,
+  setGridlinesVisibility,
   hexToRgb,
   parseA1ToGridRange,
 } from './googleSheetsApiHelpers.js';
@@ -309,6 +310,39 @@ describe('setRowHeights', () => {
     expect(req.range.sheetId).toBe(0);
     expect(req.range.startIndex).toBe(1);
     expect(req.range.endIndex).toBe(2);
+  });
+});
+
+// --- setGridlinesVisibility ---
+
+describe('setGridlinesVisibility', () => {
+  it('hides gridlines via updateSheetProperties with the correct field mask', async () => {
+    const { sheets, batchUpdate } = buildMockSheets();
+    await setGridlinesVisibility(sheets as any, 'sid', 'Data', true);
+
+    const req = firstRequests(batchUpdate)[0].updateSheetProperties;
+    expect(req.properties.gridProperties.hideGridlines).toBe(true);
+    expect(req.fields).toBe('gridProperties.hideGridlines');
+    // resolves "Data" -> sheetId 123
+    expect(req.properties.sheetId).toBe(123);
+  });
+
+  it('shows gridlines (hidden=false) with the same field mask', async () => {
+    const { sheets, batchUpdate } = buildMockSheets();
+    await setGridlinesVisibility(sheets as any, 'sid', 'Data', false);
+
+    const req = firstRequests(batchUpdate)[0].updateSheetProperties;
+    expect(req.properties.gridProperties.hideGridlines).toBe(false);
+    expect(req.fields).toBe('gridProperties.hideGridlines');
+  });
+
+  it('defaults to the first sheet when sheetName is omitted', async () => {
+    const { sheets, batchUpdate } = buildMockSheets();
+    await setGridlinesVisibility(sheets as any, 'sid', undefined, true);
+
+    const req = firstRequests(batchUpdate)[0].updateSheetProperties;
+    expect(req.properties.sheetId).toBe(0);
+    expect(req.properties.gridProperties.hideGridlines).toBe(true);
   });
 });
 

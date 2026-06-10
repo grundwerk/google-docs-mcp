@@ -20,6 +20,7 @@ Tools for reading, writing, and managing Google Spreadsheets, including cell dat
 | `setColumnWidths`             | Sets the pixel width of one or more columns                                                                         |
 | `setRowHeights`               | Sets the pixel height of one or more row ranges (1-based, inclusive)                                                |
 | `freezeRowsAndColumns`        | Pins rows and/or columns so they stay visible when scrolling                                                        |
+| `setGridlinesVisibility`      | Shows or hides the gridlines of a sheet/tab (hidden=true turns them off for a clean, print-ready look)              |
 | `setDropdownValidation`       | Adds a dropdown list to cells, restricting input to specified values                                                |
 | `addConditionalFormatting`    | Appends a conditional formatting rule (number/blank/custom-formula conditions) to one or more ranges                |
 | `listConditionalFormatRules`  | Lists conditional formatting rules per sheet with their 0-based index (use the index to delete a rule)              |

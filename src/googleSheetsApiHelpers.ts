@@ -558,6 +558,53 @@ export async function freezeRowsAndColumns(
 }
 
 /**
+ * Shows or hides the gridlines of a sheet/tab.
+ * hidden=true turns gridlines OFF, hidden=false turns them ON.
+ */
+export async function setGridlinesVisibility(
+  sheets: Sheets,
+  spreadsheetId: string,
+  sheetName: string | null | undefined,
+  hidden: boolean
+): Promise<sheets_v4.Schema$BatchUpdateSpreadsheetResponse> {
+  try {
+    const sheetId = await resolveSheetId(sheets, spreadsheetId, sheetName);
+
+    const response = await sheets.spreadsheets.batchUpdate({
+      spreadsheetId,
+      requestBody: {
+        requests: [
+          {
+            updateSheetProperties: {
+              properties: {
+                sheetId,
+                gridProperties: {
+                  hideGridlines: hidden,
+                },
+              },
+              fields: 'gridProperties.hideGridlines',
+            },
+          },
+        ],
+      },
+    });
+
+    return response.data;
+  } catch (error: any) {
+    if (error.code === 404) {
+      throw new UserError(`Spreadsheet not found (ID: ${spreadsheetId}). Check the ID.`);
+    }
+    if (error.code === 403) {
+      throw new UserError(
+        `Permission denied for spreadsheet (ID: ${spreadsheetId}). Ensure you have write access.`
+      );
+    }
+    if (error instanceof UserError) throw error;
+    throw new UserError(`Failed to set gridlines visibility: ${error.message || 'Unknown error'}`);
+  }
+}
+
+/**
  * Sets or clears dropdown data validation on a range of cells.
  * When values are provided, creates a ONE_OF_LIST validation rule.
  * When values are omitted or empty, clears any existing validation from the range.
