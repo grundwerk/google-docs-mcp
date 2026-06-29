@@ -29,7 +29,7 @@ export function register(server: FastMCP) {
           // Only get essential fields for tab listing
           fields: args.includeContent
             ? 'title,tabs(tabProperties,documentTab(body),childTabs(tabProperties,documentTab(body),childTabs(tabProperties,documentTab(body))))' // Get tab structure + content summary
-            : 'title,tabs(tabProperties,childTabs(tabProperties,childTabs(tabProperties,childTabs)))', // Otherwise just structure
+            : 'title,tabs(tabProperties,childTabs(tabProperties,childTabs(tabProperties,childTabs)))', // Otherwise just structure (recurse nested tabs, grundwerk-version)
         });
 
         const docTitle = res.data.title || 'Untitled Document';

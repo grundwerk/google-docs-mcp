@@ -13,11 +13,18 @@ Tools for reading, writing, and managing Google Spreadsheets, including cell dat
 
 ## Formatting & Validation
 
-| Tool                    | Description                                                             |
-| ----------------------- | ----------------------------------------------------------------------- |
-| `formatCells`           | Applies formatting (bold, colors, alignment) to a range, row, or column |
-| `freezeRowsAndColumns`  | Pins rows and/or columns so they stay visible when scrolling            |
-| `setDropdownValidation` | Adds a dropdown list to cells, restricting input to specified values    |
+| Tool                          | Description                                                                                                         |
+| ----------------------------- | ------------------------------------------------------------------------------------------------------------------- |
+| `formatCells`                 | Applies formatting (bold, colors, font family, alignment, vertical alignment, wrap strategy) to a range             |
+| `setBorders`                  | Sets borders (top/bottom/left/right/inner) on a range with per-side style and color                                 |
+| `setColumnWidths`             | Sets the pixel width of one or more columns                                                                         |
+| `setRowHeights`               | Sets the pixel height of one or more row ranges (1-based, inclusive)                                                |
+| `freezeRowsAndColumns`        | Pins rows and/or columns so they stay visible when scrolling                                                        |
+| `setGridlinesVisibility`      | Shows or hides the gridlines of a sheet/tab (hidden=true turns them off for a clean, print-ready look)              |
+| `setDropdownValidation`       | Adds a dropdown list to cells, restricting input to specified values                                                |
+| `addConditionalFormatting`    | Appends a conditional formatting rule (number/blank/custom-formula conditions) to one or more ranges                |
+| `listConditionalFormatRules`  | Lists conditional formatting rules per sheet with their 0-based index (use the index to delete a rule)              |
+| `deleteConditionalFormatting` | Deletes a single conditional formatting rule by its 0-based index (find the index via `listConditionalFormatRules`) |
 
 ## Management
 

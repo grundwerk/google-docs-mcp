@@ -45,10 +45,15 @@ import { register as formatCells } from './formatCells.js';
 import { register as readCellFormat } from './readCellFormat.js';
 import { register as copyFormatting } from './copyFormatting.js';
 import { register as freezeRowsAndColumns } from './freezeRowsAndColumns.js';
+import { register as setGridlinesVisibility } from './setGridlinesVisibility.js';
 import { register as setColumnWidths } from './setColumnWidths.js';
+import { register as setRowHeights } from './setRowHeights.js';
 import { register as autoResizeColumns } from './autoResizeColumns.js';
 import { register as setDropdownValidation } from './setDropdownValidation.js';
+import { register as setBorders } from './setBorders.js';
 import { register as addConditionalFormatting } from './addConditionalFormatting.js';
+import { register as listConditionalFormatRules } from './listConditionalFormatRules.js';
+import { register as deleteConditionalFormatting } from './deleteConditionalFormatting.js';
 
 // Tables
 import { register as createTable } from './createTable.js';
@@ -79,10 +84,15 @@ export function registerSheetsTools(server: FastMCP) {
   readCellFormat(server);
   copyFormatting(server);
   freezeRowsAndColumns(server);
+  setGridlinesVisibility(server);
   setColumnWidths(server);
+  setRowHeights(server);
   autoResizeColumns(server);
   setDropdownValidation(server);
+  setBorders(server);
   addConditionalFormatting(server);
+  listConditionalFormatRules(server);
+  deleteConditionalFormatting(server);
 
   // Tables
   createTable(server);

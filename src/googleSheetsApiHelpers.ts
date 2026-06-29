@@ -386,9 +386,11 @@ export async function formatCells(
       fontSize?: number;
       bold?: boolean;
       italic?: boolean;
+      fontFamily?: string;
     };
     horizontalAlignment?: 'LEFT' | 'CENTER' | 'RIGHT';
     verticalAlignment?: 'TOP' | 'MIDDLE' | 'BOTTOM';
+    wrapStrategy?: 'WRAP' | 'CLIP' | 'OVERFLOW_CELL';
     numberFormat?: { type: string; pattern?: string };
   }
 ): Promise<sheets_v4.Schema$BatchUpdateSpreadsheetResponse> {
@@ -431,6 +433,9 @@ export async function formatCells(
       if (format.textFormat.italic !== undefined) {
         userEnteredFormat.textFormat.italic = format.textFormat.italic;
       }
+      if (format.textFormat.fontFamily !== undefined) {
+        userEnteredFormat.textFormat.fontFamily = format.textFormat.fontFamily;
+      }
     }
 
     if (format.horizontalAlignment) {
@@ -439,6 +444,10 @@ export async function formatCells(
 
     if (format.verticalAlignment) {
       userEnteredFormat.verticalAlignment = format.verticalAlignment;
+    }
+
+    if (format.wrapStrategy) {
+      userEnteredFormat.wrapStrategy = format.wrapStrategy;
     }
 
     if (format.numberFormat) {
@@ -453,6 +462,9 @@ export async function formatCells(
       'textFormat',
       'horizontalAlignment',
       'verticalAlignment',
+      // wrapStrategy is only added to the mask when set, so a missing param
+      // never clears an existing wrap setting on the cells.
+      ...(format.wrapStrategy ? ['wrapStrategy'] : []),
       ...(format.numberFormat ? ['numberFormat'] : []),
     ].join(',');
 
@@ -542,6 +554,53 @@ export async function freezeRowsAndColumns(
     }
     if (error instanceof UserError) throw error;
     throw new UserError(`Failed to freeze rows/columns: ${error.message || 'Unknown error'}`);
+  }
+}
+
+/**
+ * Shows or hides the gridlines of a sheet/tab.
+ * hidden=true turns gridlines OFF, hidden=false turns them ON.
+ */
+export async function setGridlinesVisibility(
+  sheets: Sheets,
+  spreadsheetId: string,
+  sheetName: string | null | undefined,
+  hidden: boolean
+): Promise<sheets_v4.Schema$BatchUpdateSpreadsheetResponse> {
+  try {
+    const sheetId = await resolveSheetId(sheets, spreadsheetId, sheetName);
+
+    const response = await sheets.spreadsheets.batchUpdate({
+      spreadsheetId,
+      requestBody: {
+        requests: [
+          {
+            updateSheetProperties: {
+              properties: {
+                sheetId,
+                gridProperties: {
+                  hideGridlines: hidden,
+                },
+              },
+              fields: 'gridProperties.hideGridlines',
+            },
+          },
+        ],
+      },
+    });
+
+    return response.data;
+  } catch (error: any) {
+    if (error.code === 404) {
+      throw new UserError(`Spreadsheet not found (ID: ${spreadsheetId}). Check the ID.`);
+    }
+    if (error.code === 403) {
+      throw new UserError(
+        `Permission denied for spreadsheet (ID: ${spreadsheetId}). Ensure you have write access.`
+      );
+    }
+    if (error instanceof UserError) throw error;
+    throw new UserError(`Failed to set gridlines visibility: ${error.message || 'Unknown error'}`);
   }
 }
 
@@ -664,6 +723,254 @@ export async function setColumnWidths(
     }
     if (error instanceof UserError) throw error;
     throw new UserError(`Failed to set column widths: ${error.message || 'Unknown error'}`);
+  }
+}
+
+/** A single border side specification. */
+export interface BorderSpec {
+  style: 'SOLID' | 'SOLID_MEDIUM' | 'SOLID_THICK' | 'DASHED' | 'DOTTED' | 'DOUBLE' | 'NONE';
+  color?: string; // hex, e.g. "#000000"
+}
+
+/**
+ * Sets borders on a range of cells via the Sheets API `updateBorders` request.
+ * Each side (top/bottom/left/right/innerHorizontal/innerVertical) is optional.
+ * Note: `updateBorders` does NOT take a `fields` mask — only the sides you pass
+ * are touched.
+ */
+export async function setBorders(
+  sheets: Sheets,
+  spreadsheetId: string,
+  range: string,
+  borders: {
+    top?: BorderSpec;
+    bottom?: BorderSpec;
+    left?: BorderSpec;
+    right?: BorderSpec;
+    innerHorizontal?: BorderSpec;
+    innerVertical?: BorderSpec;
+  }
+): Promise<sheets_v4.Schema$BatchUpdateSpreadsheetResponse> {
+  try {
+    const { sheetName, a1Range } = parseRange(range);
+    const sheetId = await resolveSheetId(sheets, spreadsheetId, sheetName);
+    const gridRange = parseA1ToGridRange(a1Range, sheetId);
+
+    const toBorder = (spec?: BorderSpec): sheets_v4.Schema$Border | undefined => {
+      if (!spec) return undefined;
+      const border: sheets_v4.Schema$Border = { style: spec.style };
+      if (spec.color) {
+        const rgb = hexToRgb(spec.color);
+        if (!rgb) {
+          throw new UserError(
+            `Invalid border color: "${spec.color}". Expected hex like "#000000".`
+          );
+        }
+        border.color = rgb;
+      }
+      return border;
+    };
+
+    const updateBorders: sheets_v4.Schema$UpdateBordersRequest = { range: gridRange };
+    if (borders.top) updateBorders.top = toBorder(borders.top);
+    if (borders.bottom) updateBorders.bottom = toBorder(borders.bottom);
+    if (borders.left) updateBorders.left = toBorder(borders.left);
+    if (borders.right) updateBorders.right = toBorder(borders.right);
+    if (borders.innerHorizontal) updateBorders.innerHorizontal = toBorder(borders.innerHorizontal);
+    if (borders.innerVertical) updateBorders.innerVertical = toBorder(borders.innerVertical);
+
+    const response = await sheets.spreadsheets.batchUpdate({
+      spreadsheetId,
+      requestBody: {
+        requests: [{ updateBorders }],
+      },
+    });
+
+    return response.data;
+  } catch (error: any) {
+    if (error.code === 404) {
+      throw new UserError(`Spreadsheet not found (ID: ${spreadsheetId}). Check the ID.`);
+    }
+    if (error.code === 403) {
+      throw new UserError(
+        `Permission denied for spreadsheet (ID: ${spreadsheetId}). Ensure you have write access.`
+      );
+    }
+    if (error instanceof UserError) throw error;
+    throw new UserError(`Failed to set borders: ${error.message || 'Unknown error'}`);
+  }
+}
+
+/** A single conditional-format rule as returned by listConditionalFormatRules. */
+export interface ConditionalFormatRuleInfo {
+  index: number;
+  ranges: sheets_v4.Schema$GridRange[];
+  backgroundColor?: sheets_v4.Schema$Color;
+  condition?: sheets_v4.Schema$BooleanCondition;
+  gradient?: sheets_v4.Schema$GradientRule;
+}
+
+/** Conditional-format rules grouped per sheet. */
+export interface SheetConditionalFormatRules {
+  sheetId: number;
+  sheetName: string;
+  rules: ConditionalFormatRuleInfo[];
+}
+
+/**
+ * Lists all conditional-format rules across the spreadsheet (or a single sheet
+ * when sheetName is provided). Each rule is returned WITH its 0-based array
+ * index inside the sheet, so the caller knows the index to pass to
+ * deleteConditionalFormatRule.
+ */
+export async function listConditionalFormatRules(
+  sheets: Sheets,
+  spreadsheetId: string,
+  sheetName?: string | null
+): Promise<SheetConditionalFormatRules[]> {
+  try {
+    const response = await sheets.spreadsheets.get({
+      spreadsheetId,
+      fields: 'sheets(properties(sheetId,title),conditionalFormats)',
+    });
+
+    const result: SheetConditionalFormatRules[] = [];
+
+    for (const sheet of response.data.sheets || []) {
+      const sheetId = sheet.properties?.sheetId;
+      if (sheetId === null || sheetId === undefined) continue;
+      const title = sheet.properties?.title || 'Unknown';
+      if (sheetName && title !== sheetName) continue;
+
+      const rules: ConditionalFormatRuleInfo[] = (sheet.conditionalFormats || []).map(
+        (rule, index) => ({
+          index,
+          ranges: rule.ranges || [],
+          backgroundColor: rule.booleanRule?.format?.backgroundColor ?? undefined,
+          condition: rule.booleanRule?.condition ?? undefined,
+          gradient: rule.gradientRule ?? undefined,
+        })
+      );
+
+      result.push({ sheetId, sheetName: title, rules });
+    }
+
+    if (sheetName && result.length === 0) {
+      throw new UserError(`Sheet "${sheetName}" not found in spreadsheet.`);
+    }
+
+    return result;
+  } catch (error: any) {
+    if (error.code === 404) {
+      throw new UserError(`Spreadsheet not found (ID: ${spreadsheetId}). Check the ID.`);
+    }
+    if (error.code === 403) {
+      throw new UserError(
+        `Permission denied for spreadsheet (ID: ${spreadsheetId}). Ensure you have read access.`
+      );
+    }
+    if (error instanceof UserError) throw error;
+    throw new UserError(
+      `Failed to list conditional format rules: ${error.message || 'Unknown error'}`
+    );
+  }
+}
+
+/**
+ * Deletes a conditional-format rule from a sheet by its 0-based index.
+ * Use listConditionalFormatRules to find the index of the rule to delete.
+ */
+export async function deleteConditionalFormatRule(
+  sheets: Sheets,
+  spreadsheetId: string,
+  sheetName: string | null | undefined,
+  index: number
+): Promise<sheets_v4.Schema$BatchUpdateSpreadsheetResponse> {
+  try {
+    const sheetId = await resolveSheetId(sheets, spreadsheetId, sheetName);
+
+    const response = await sheets.spreadsheets.batchUpdate({
+      spreadsheetId,
+      requestBody: {
+        requests: [
+          {
+            deleteConditionalFormatRule: {
+              sheetId,
+              index,
+            },
+          },
+        ],
+      },
+    });
+
+    return response.data;
+  } catch (error: any) {
+    if (error.code === 404) {
+      throw new UserError(`Spreadsheet not found (ID: ${spreadsheetId}). Check the ID.`);
+    }
+    if (error.code === 400) {
+      throw new UserError(
+        `Invalid conditional format rule index ${index}. Use listConditionalFormatRules to see valid indices.`
+      );
+    }
+    if (error.code === 403) {
+      throw new UserError(
+        `Permission denied for spreadsheet (ID: ${spreadsheetId}). Ensure you have write access.`
+      );
+    }
+    if (error instanceof UserError) throw error;
+    throw new UserError(
+      `Failed to delete conditional format rule: ${error.message || 'Unknown error'}`
+    );
+  }
+}
+
+/**
+ * Sets the height (in pixels) of one or more contiguous row ranges.
+ * Each entry uses 1-based, inclusive startRow/endRow (matching the row numbers
+ * shown in the Sheets UI). Mirror of setColumnWidths for the ROWS dimension.
+ */
+export async function setRowHeights(
+  sheets: Sheets,
+  spreadsheetId: string,
+  sheetName: string | null | undefined,
+  rowHeights: Array<{ startRow: number; endRow: number; height: number }>
+): Promise<sheets_v4.Schema$BatchUpdateSpreadsheetResponse> {
+  try {
+    const sheetId = await resolveSheetId(sheets, spreadsheetId, sheetName);
+
+    const requests: sheets_v4.Schema$Request[] = rowHeights.map(({ startRow, endRow, height }) => ({
+      updateDimensionProperties: {
+        range: {
+          sheetId,
+          dimension: 'ROWS',
+          startIndex: startRow - 1,
+          endIndex: endRow,
+        },
+        properties: {
+          pixelSize: height,
+        },
+        fields: 'pixelSize',
+      },
+    }));
+
+    const response = await sheets.spreadsheets.batchUpdate({
+      spreadsheetId,
+      requestBody: { requests },
+    });
+
+    return response.data;
+  } catch (error: any) {
+    if (error.code === 404) {
+      throw new UserError(`Spreadsheet not found (ID: ${spreadsheetId}). Check the ID.`);
+    }
+    if (error.code === 403) {
+      throw new UserError(
+        `Permission denied for spreadsheet (ID: ${spreadsheetId}). Ensure you have write access.`
+      );
+    }
+    if (error instanceof UserError) throw error;
+    throw new UserError(`Failed to set row heights: ${error.message || 'Unknown error'}`);
   }
 }
 
