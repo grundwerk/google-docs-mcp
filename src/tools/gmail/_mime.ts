@@ -84,6 +84,60 @@ export async function collectAttachments(
   }
 }
 
+// ── Header-Kodierung nach RFC 2047 ───────────────────────────────────────────
+// Header sind nach RFC 5322 auf 7-bit-ASCII beschraenkt. `encodeMimeForGmail`
+// schreibt die Nachricht aber als UTF-8-Bytes: ein roh interpolierter Umlaut
+// landet damit als 0xC3 0xBC im Header und wird vom Client als Latin-1 gelesen
+// ("Kündigung" -> "KÃ¼ndigung"). Der Body war nie betroffen, er traegt ein
+// eigenes `charset=UTF-8`. Vorfall 2026-09-30, Test in `_mime.test.ts`.
+
+const NICHT_ASCII = /[^\x00-\x7F]/;
+
+/**
+ * Kodiert einen Header-Wert als RFC-2047-encoded-word, aber nur wenn noetig.
+ * Reines ASCII bleibt byte-identisch, damit sich am bisherigen Verhalten nichts
+ * aendert und der Header im Rohformat lesbar bleibt.
+ */
+export function encodeHeaderValue(value: string): string {
+  if (!value || !NICHT_ASCII.test(value)) return value;
+  // Rahmen "=?UTF-8?B?" + "?=" kostet 12 Zeichen; RFC 2047 erlaubt 75 je Wort.
+  // base64 laeuft in 4er-Bloecken -> 60 Ausgabe-Zeichen -> 45 Quell-Bytes.
+  const MAX_BYTES = 45;
+  const teile: string[] = [];
+  let aktuell: number[] = [];
+  // Iteration ueber Codepoints, damit nie mitten durch ein Mehrbyte-Zeichen
+  // geschnitten wird -- ein solcher Schnitt erzeugt beim Dekodieren U+FFFD.
+  for (const zeichen of value) {
+    const bytes = Array.from(Buffer.from(zeichen, 'utf-8'));
+    if (aktuell.length + bytes.length > MAX_BYTES) {
+      teile.push(Buffer.from(aktuell).toString('base64'));
+      aktuell = [];
+    }
+    aktuell.push(...bytes);
+  }
+  if (aktuell.length) teile.push(Buffer.from(aktuell).toString('base64'));
+  // Folgewoerter werden gefaltet (CRLF + Space), wie RFC 2047 es verlangt.
+  return teile.map((t) => `=?UTF-8?B?${t}?=`).join('\r\n ');
+}
+
+/**
+ * Kodiert NUR den Anzeigenamen einer Adressliste. Die Adresse selbst bleibt roh,
+ * sonst ist sie nicht mehr zustellbar.
+ */
+export function encodeAddressList(list: string): string {
+  if (!list || !NICHT_ASCII.test(list)) return list;
+  return list
+    .split(',')
+    .map((eintrag) => {
+      const roh = eintrag.trim();
+      const treffer = roh.match(/^(.*?)\s*<([^>]+)>$/);
+      if (!treffer) return roh; // nackte Adresse ohne Anzeigename
+      const name = treffer[1].replace(/^"|"$/g, '').trim();
+      return name ? `${encodeHeaderValue(name)} <${treffer[2]}>` : `<${treffer[2]}>`;
+    })
+    .join(', ');
+}
+
 export function buildMimeMessage(opts: BuildMimeOptions): string {
   const {
     to,
@@ -99,11 +153,11 @@ export function buildMimeMessage(opts: BuildMimeOptions): string {
   } = opts;
 
   let mime = '';
-  if (from) mime += `From: ${from}\r\n`;
-  mime += `To: ${to}\r\n`;
-  if (cc) mime += `Cc: ${cc}\r\n`;
-  if (bcc) mime += `Bcc: ${bcc}\r\n`;
-  mime += `Subject: ${subject}\r\n`;
+  if (from) mime += `From: ${encodeAddressList(from)}\r\n`;
+  mime += `To: ${encodeAddressList(to)}\r\n`;
+  if (cc) mime += `Cc: ${encodeAddressList(cc)}\r\n`;
+  if (bcc) mime += `Bcc: ${encodeAddressList(bcc)}\r\n`;
+  mime += `Subject: ${encodeHeaderValue(subject)}\r\n`;
   if (inReplyTo) mime += `In-Reply-To: ${inReplyTo}\r\n`;
   const refsHeader = references || inReplyTo;
   if (refsHeader) mime += `References: ${refsHeader}\r\n`;
@@ -127,8 +181,8 @@ export function buildMimeMessage(opts: BuildMimeOptions): string {
 
   for (const att of attachments) {
     mime += `--${boundary}\r\n`;
-    mime += `Content-Type: ${att.mimeType}; name="${att.filename}"\r\n`;
-    mime += `Content-Disposition: attachment; filename="${att.filename}"\r\n`;
+    mime += `Content-Type: ${att.mimeType}; name="${encodeHeaderValue(att.filename)}"\r\n`;
+    mime += `Content-Disposition: attachment; filename="${encodeHeaderValue(att.filename)}"\r\n`;
     mime += `Content-Transfer-Encoding: base64\r\n\r\n`;
     const stdBase64 = att.dataBase64Url.replace(/-/g, '+').replace(/_/g, '/');
     const wrapped = stdBase64.match(/.{1,76}/g)?.join('\r\n') || stdBase64;
