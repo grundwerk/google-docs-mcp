@@ -9,7 +9,7 @@ Tools for managing files and folders in Google Drive, including listing, searchi
 | `getDocumentInfo`            | Gets metadata about a document (owner, sharing, modification history)        |
 | `createDocument`             | Creates a new empty Google Document                                          |
 | `createDocumentFromTemplate` | Creates a new document by copying a template with placeholder replacements   |
-| `createFolder`               | Creates a new folder in Google Drive                                         |
+| `createFolder`               | Creates a folder inside a required parent (private root refused)             |
 | `listFolderContents`         | Lists files and subfolders within a Drive folder                             |
 | `getFolderInfo`              | Gets metadata about a Drive folder                                           |
 | `moveFile`                   | Moves a file or folder to a different Drive folder                           |
