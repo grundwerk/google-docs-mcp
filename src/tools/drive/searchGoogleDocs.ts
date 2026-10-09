@@ -7,7 +7,7 @@ export function register(server: FastMCP) {
   server.addTool({
     name: 'searchDocuments',
     description:
-      'Searches for documents by name, content, or both. Use listDocuments for browsing and this tool for targeted queries.',
+      'Searches Google Docs by name, content, or both. Finds ONLY Google Docs: no folders, PDFs or other files. To find a folder, list its parent with listFolderContents. Use listDocuments for browsing and this tool for targeted queries.',
     parameters: z.object({
       query: z.string().min(1).describe('Search term to find in document names or content.'),
       searchIn: z
