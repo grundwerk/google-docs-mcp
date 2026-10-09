@@ -130,7 +130,7 @@ The server starts automatically when your MCP client needs it.
 | `getDocumentInfo`    | Get document metadata                       |
 | `createDocument`     | Create a new document                       |
 | `createFromTemplate` | Create from an existing template            |
-| `createFolder`       | Create a folder                             |
+| `createFolder`       | Create a folder (parent required, no root)  |
 | `listFolderContents` | List folder contents                        |
 | `getFolderInfo`      | Get folder metadata                         |
 | `moveFile`           | Move a file to another folder               |
