@@ -11,6 +11,7 @@ import { registerFormsTools } from './forms/index.js';
 import { registerTasksTools } from './tasks/index.js';
 import { registerScriptTools } from './script/index.js';
 import { registerPeopleTools } from './people/index.js';
+import { registerApiTools } from './api/index.js';
 
 /**
  * Registers all tools with the FastMCP server.
@@ -27,4 +28,5 @@ export function registerAllTools(server: FastMCP) {
   registerTasksTools(server);
   registerScriptTools(server);
   registerPeopleTools(server);
+  registerApiTools(server);
 }
