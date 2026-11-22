@@ -8,7 +8,13 @@ on:
 
 jobs:
   test:
-    runs-on: ubuntu-latest
+    # Hetzner statt GitHub-Runner (Tom 2026-11-20: GitHub-Actions-Ausgaben nie bewilligt; Oktober 1.203,98 USD,
+    # November bis 21.11. rund 1.596 USD). hetzner-org ist das org-weite Scale-Set auf unserem Cluster.
+    # LANG wie auf GitHub-Runnern, das ARC-Image setzt keine Locale.
+    runs-on: hetzner-org
+    timeout-minutes: 15
+    env:
+      LANG: C.UTF-8
 
     strategy:
       matrix:

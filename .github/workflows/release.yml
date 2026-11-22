@@ -7,7 +7,9 @@ on:
 
 jobs:
   publish:
-    runs-on: ubuntu-latest
+    # Hetzner statt GitHub-Runner (Tom 2026-11-20: GitHub-Actions-Ausgaben nie bewilligt; Oktober 1.203,98 USD,
+    # November bis 21.11. rund 1.596 USD). hetzner-org ist das org-weite Scale-Set auf unserem Cluster.
+    runs-on: hetzner-org
 
     permissions:
       contents: write # needed for GitHub Release creation
