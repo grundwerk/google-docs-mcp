@@ -8,6 +8,7 @@ on:
 
 jobs:
   test:
+    # github-hosted-erlaubt: oeffentliches Repo mit kostenlosen GitHub-Minuten und hetzner-org nimmt keine oeffentlichen Repos an, 30 min/Monat, Tom 2026-11-22
     runs-on: ubuntu-latest
 
     strategy:
